@@ -22,13 +22,37 @@ DynamixelDevice::DynamixelDevice(SerialPortHandler &port, const uint16_t model_n
 
 void DynamixelDevice::storeInEEPROM()
 {
-  EEPROM.put(0, eeprom_registers);
+  // do not use this:
+  // EEPROM.put(0, eeprom_registers);
+  // because the structures are aligned to word boundaries and
+  // the size of the struct is different than the sum of all
+  // items
+  // Instead write them one by one
+  EEPROM.put(ADDR_MODEL_NUMBER, eeprom_registers.model_num);
+  EEPROM.put(ADDR_MODEL_INFORMATION, eeprom_registers.model_info);
+  EEPROM.put(ADDR_FIRMWARE_VER, eeprom_registers.firmware_ver);
+  EEPROM.put(ADDR_ID, eeprom_registers.id);
+  EEPROM.put(ADDR_BAUDRATE, eeprom_registers.baudrate);
+  EEPROM.put(ADDR_RETURN_DELAY_TIME, eeprom_registers.return_delay_time);
+  EEPROM.put(ADDR_PROTOCOL_VER, eeprom_registers.return_delay_time);
 }
 
 
 void DynamixelDevice::restoreFromEEPROM()
 {
-  EEPROM.get(0, eeprom_registers);
+  // do not use this:
+  //   EEPROM.get(0, eeprom_registers);
+  // because the structures are aligned to word boundaries and
+  // the size of the struct is different than the sum of all
+  // items
+  // Instead read them one by one
+  EEPROM.get(ADDR_MODEL_NUMBER, eeprom_registers.model_num);
+  EEPROM.get(ADDR_MODEL_INFORMATION, eeprom_registers.model_info);
+  EEPROM.get(ADDR_FIRMWARE_VER, eeprom_registers.firmware_ver);
+  EEPROM.get(ADDR_ID, eeprom_registers.id);
+  EEPROM.get(ADDR_BAUDRATE, eeprom_registers.baudrate);
+  EEPROM.get(ADDR_RETURN_DELAY_TIME, eeprom_registers.return_delay_time);
+  EEPROM.get(ADDR_PROTOCOL_VER, eeprom_registers.return_delay_time);
 }
 
 
