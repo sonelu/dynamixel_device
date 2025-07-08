@@ -43,21 +43,11 @@ enum DefaultControlTableItemAddr{
   ADDR_ID                     = 7,
   ADDR_BAUDRATE               = 8,
   ADDR_RETURN_DELAY_TIME      = 9,
-  ADDR_PROTOCOL_VER           = 13
+  ADDR_PROTOCOL_VER           = 13,
+  ADDR_ENABLE                 = 64,
+  ADDR_LED                    = 65,
 };
 
-typedef struct DefaultEEPROM{
-    uint16_t  model_num         = 0x5555;
-    uint32_t  model_info        = 0x25060316;
-    uint8_t   firmware_ver      = 1;
-    uint8_t   id                = 1;
-    uint8_t   baudrate          = 3; // 1000000bps
-    uint8_t   return_delay_time = 250;
-    uint8_t   drive_mode        = 0; // not used
-    uint8_t   operating_mode    = 0; // not used
-    uint8_t   shadow_id         = 0; // not used
-    uint8_t   protocol_ver      = 2; // protocol 2.0
-} EEPROM_Area;
 
 const unsigned long BAUDS[] {9600, 57600, 115200, 1000000, 2000000, 3000000, 4000000, 4500000};
 
@@ -78,30 +68,11 @@ class DynamixelDevice
     uint8_t* getPacketBuffer() const;
     uint16_t getPacketBufferCapacity() const;
 
-    // uint16_t getModelNumber() const;
-
-    // bool setID(uint8_t id);
-    // uint8_t getID() const;
-
-    // void setFirmwareVersion(uint8_t version);
-    // uint8_t getFirmwareVersion() const;
-
-
-    // bool setPort(DXLPortHandler &port);
-    // bool setPort(DXLPortHandler *p_port);
-    // DXLPortHandler* getPort() const;
-
-    // bool setPortProtocolVersion(float version);
-    // bool setPortProtocolVersionUsingIndex(uint8_t version_idx);
-    // float getPortProtocolVersion() const;
-    // uint8_t getPortProtocolVersionIndex() const;
-
     void setWriteCallbackFunc(userCallbackFunc callback_func, void* callback_arg = nullptr);
     void setReadCallbackFunc(userCallbackFunc callback_func, void* callback_arg = nullptr);
 
     uint8_t getNumCanBeRegistered() const;
     bool isEnoughSpaceInControlTable(uint16_t start_addr, uint16_t length);
-
 
     uint8_t addControlItem(uint16_t start_addr, uint8_t* p_data, uint16_t length);
     uint8_t addControlItem(uint16_t start_addr, bool &data);
@@ -118,19 +89,23 @@ class DynamixelDevice
 
     bool processPacket();
 
-    uint8_t getLastStatusPacketError() const;
-
-    void setLastLibErrCode(DXLLibErrorCode_t err_code);
-    DXLLibErrorCode_t getLastLibErrCode() const;
-
     // raw APIs
     bool txStatusPacket(uint8_t id, uint8_t err_code, uint8_t *p_param, uint16_t param_len);
     const InfoToParseDXLPacket_t* rxInstPacket(uint8_t* p_param_buf, uint16_t param_buf_cap);
 
-  private:
+  protected:
     SerialPortHandler *p_port_;
 
-    EEPROM_Area     eeprom_registers;
+    // Registers
+    uint16_t  model_num_;
+    uint32_t  model_info_;
+    uint8_t   firmware_ver_;
+    uint8_t   id_;
+    uint8_t   baudrate_;
+    uint8_t   return_delay_time_;
+    uint8_t   protocol_ver_;
+    uint8_t   enable_;
+    uint8_t   led_;
 
     bool is_buf_malloced_;
     uint8_t *p_packet_buf_;
@@ -143,11 +118,6 @@ class DynamixelDevice
     uint8_t registered_item_cnt_;
     ControlItem_t control_table_[CONTROL_ITEM_MAX];
 
-    userCallbackFunc user_write_callback_;
-    void* user_write_callbakc_arg_;
-    userCallbackFunc user_read_callback_;
-    void* user_read_callbakc_arg_;
-
     bool processInst(uint8_t inst_idx);
     virtual bool processInstPing();
     virtual bool processInstRead();
@@ -155,8 +125,6 @@ class DynamixelDevice
 
     virtual uint8_t processReadRegister(uint16_t addr);
     virtual uint8_t processWriteRegister(uint16_t addr, uint8_t* p_data);
-
-
 };
 
 } // namespace DYNAMIXEL

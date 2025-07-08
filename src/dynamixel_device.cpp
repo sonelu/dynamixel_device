@@ -10,49 +10,37 @@ static bool isAddrInOtherItem(uint16_t start_addr, uint16_t length, uint16_t oth
 
 DynamixelDevice::DynamixelDevice(SerialPortHandler &port, const uint16_t model_num, const uint32_t model_info, const uint8_t firmware_ver)
 : p_port_(&port),
+  model_num_(model_num), model_info_(model_info), firmware_ver_(firmware_ver),
+  id_(1), baudrate_(3), return_delay_time_(250), protocol_ver_(2),
+  enable_(0), led_(0),
   is_buf_malloced_(false),
   packet_buf_capacity_(0),
   last_lib_err_(DXL_LIB_OK),
   registered_item_cnt_(0)
 {
-  eeprom_registers.model_num = model_num;
-  eeprom_registers.model_info = model_info;
-  eeprom_registers.firmware_ver = firmware_ver;
 }
 
 void DynamixelDevice::storeInEEPROM()
 {
-  // do not use this:
-  // EEPROM.put(0, eeprom_registers);
-  // because the structures are aligned to word boundaries and
-  // the size of the struct is different than the sum of all
-  // items
-  // Instead write them one by one
-  EEPROM.put(ADDR_MODEL_NUMBER, eeprom_registers.model_num);
-  EEPROM.put(ADDR_MODEL_INFORMATION, eeprom_registers.model_info);
-  EEPROM.put(ADDR_FIRMWARE_VER, eeprom_registers.firmware_ver);
-  EEPROM.put(ADDR_ID, eeprom_registers.id);
-  EEPROM.put(ADDR_BAUDRATE, eeprom_registers.baudrate);
-  EEPROM.put(ADDR_RETURN_DELAY_TIME, eeprom_registers.return_delay_time);
-  EEPROM.put(ADDR_PROTOCOL_VER, eeprom_registers.return_delay_time);
+  EEPROM.put(ADDR_MODEL_NUMBER, model_num_);
+  EEPROM.put(ADDR_MODEL_INFORMATION, model_info_);
+  EEPROM.put(ADDR_FIRMWARE_VER, firmware_ver_);
+  EEPROM.put(ADDR_ID, id_);
+  EEPROM.put(ADDR_BAUDRATE, baudrate_);
+  EEPROM.put(ADDR_RETURN_DELAY_TIME, return_delay_time_);
+  EEPROM.put(ADDR_PROTOCOL_VER, protocol_ver_);
 }
 
 
 void DynamixelDevice::restoreFromEEPROM()
 {
-  // do not use this:
-  //   EEPROM.get(0, eeprom_registers);
-  // because the structures are aligned to word boundaries and
-  // the size of the struct is different than the sum of all
-  // items
-  // Instead read them one by one
-  EEPROM.get(ADDR_MODEL_NUMBER, eeprom_registers.model_num);
-  EEPROM.get(ADDR_MODEL_INFORMATION, eeprom_registers.model_info);
-  EEPROM.get(ADDR_FIRMWARE_VER, eeprom_registers.firmware_ver);
-  EEPROM.get(ADDR_ID, eeprom_registers.id);
-  EEPROM.get(ADDR_BAUDRATE, eeprom_registers.baudrate);
-  EEPROM.get(ADDR_RETURN_DELAY_TIME, eeprom_registers.return_delay_time);
-  EEPROM.get(ADDR_PROTOCOL_VER, eeprom_registers.return_delay_time);
+  EEPROM.get(ADDR_MODEL_NUMBER, model_num_);
+  EEPROM.get(ADDR_MODEL_INFORMATION, model_info_);
+  EEPROM.get(ADDR_FIRMWARE_VER, firmware_ver_);
+  EEPROM.get(ADDR_ID, id_);
+  EEPROM.get(ADDR_BAUDRATE, baudrate_);
+  EEPROM.get(ADDR_RETURN_DELAY_TIME, return_delay_time_);
+  EEPROM.get(ADDR_PROTOCOL_VER, protocol_ver_);
 }
 
 
@@ -63,7 +51,7 @@ void DynamixelDevice::begin(void)
   uint8_t read_firmware_ver;
   EEPROM.get(ADDR_MODEL_NUMBER, read_model_number);
   EEPROM.get(ADDR_FIRMWARE_VER, read_firmware_ver);
-  if (read_model_number != eeprom_registers.model_num  || read_firmware_ver != eeprom_registers.firmware_ver) {
+  if (read_model_number != model_num_  || read_firmware_ver != firmware_ver_) {
     // refresh version in EEPROM
     storeInEEPROM();
   }
@@ -90,20 +78,22 @@ void DynamixelDevice::startCommunication(void)
   if(p_port_->getOpenState()) {
     p_port_->end();
   }
-  p_port_->begin(BAUDS[eeprom_registers.baudrate]);
+  p_port_->begin(BAUDS[baudrate_]);
 }
 
 
 bool DynamixelDevice::addControlItems()
 {
   if(
-    addControlItem(ADDR_MODEL_NUMBER, eeprom_registers.model_num) != DXL_LIB_OK ||
-    addControlItem(ADDR_MODEL_INFORMATION, eeprom_registers.model_info) != DXL_LIB_OK ||
-    addControlItem(ADDR_FIRMWARE_VER, eeprom_registers.firmware_ver) != DXL_LIB_OK ||
-    addControlItem(ADDR_ID, eeprom_registers.id) != DXL_LIB_OK ||
-    addControlItem(ADDR_BAUDRATE, eeprom_registers.baudrate) != DXL_LIB_OK ||
-    addControlItem(ADDR_RETURN_DELAY_TIME, eeprom_registers.return_delay_time) != DXL_LIB_OK ||
-    addControlItem(ADDR_PROTOCOL_VER, eeprom_registers.protocol_ver) != DXL_LIB_OK
+    addControlItem(ADDR_MODEL_NUMBER, model_num_) != DXL_LIB_OK ||
+    addControlItem(ADDR_MODEL_INFORMATION, model_info_) != DXL_LIB_OK ||
+    addControlItem(ADDR_FIRMWARE_VER, firmware_ver_) != DXL_LIB_OK ||
+    addControlItem(ADDR_ID, id_) != DXL_LIB_OK ||
+    addControlItem(ADDR_BAUDRATE, baudrate_) != DXL_LIB_OK ||
+    addControlItem(ADDR_RETURN_DELAY_TIME, return_delay_time_) != DXL_LIB_OK ||
+    addControlItem(ADDR_PROTOCOL_VER, protocol_ver_) != DXL_LIB_OK ||
+    addControlItem(ADDR_ENABLE, enable_) != DXL_LIB_OK ||
+    addControlItem(ADDR_LED, led_) != DXL_LIB_OK
   ){
     return false;
   }
@@ -143,94 +133,9 @@ DynamixelDevice::getPacketBufferCapacity() const
   return packet_buf_capacity_;
 }
 
-// bool
-// DynamixelDevice::setPortProtocolVersion(float version)
-// {
-//   uint8_t version_idx;
-
-//   if(version == 2.0){
-//     version_idx = 2;
-//   }else if(version == 1.0){
-//     version_idx = 1;
-//   }else{
-//     last_lib_err_ = DXL_LIB_ERROR_INVAILD_PROTOCOL_VERSION;
-//     return false;
-//   }
-
-//   return setPortProtocolVersionUsingIndex(version_idx);
-// }
-
-// bool
-// Slave2::setPortProtocolVersionUsingIndex(uint8_t version_idx)
-// {
-//   if(version_idx != 2 && version_idx != 1){
-//     return false;
-//   }
-//   protocol_ver_idx_ = version_idx;
-
-//   return true;
-// }
-
-// float
-// Slave2::getPortProtocolVersion() const
-// {
-//   return (float)protocol_ver_idx_;
-// }
 
 
-
-// uint8_t
-// Slave2::getPortProtocolVersionIndex() const
-// {
-//   return protocol_ver_idx_;
-// }
-
-// uint16_t
-// Slave2::getModelNumber() const
-// {
-//   return model_num_;
-// }
-
-// bool
-// Slave2::setID(uint8_t id)
-// {
-//   DXLLibErrorCode_t err = DXL_LIB_OK;
-
-//   if(protocol_ver_idx_ == 2 && id >= 0xFD){ //http://emanual.robotis.com/docs/en/dxl/protocol2/#packet-id
-//     err = DXL_LIB_ERROR_INVAILD_ID;
-//   }else if(protocol_ver_idx_ == 1 && id >= DXL_BROADCAST_ID){ //http://emanual.robotis.com/docs/en/dxl/protocol1/#packet-id
-//     err = DXL_LIB_ERROR_INVAILD_ID;
-//   }
-//   last_lib_err_ = err;
-//   if(err != DXL_LIB_OK){
-//     return false;
-//   }
-
-//   id_ = id;
-
-//   return true;
-// }
-
-// uint8_t
-// Slave2::getID() const
-// {
-//   return id_;
-// }
-
-// void
-// Slave2::setFirmwareVersion(uint8_t version)
-// {
-//   firmware_ver_ = version;
-// }
-
-// uint8_t
-// Slave2::getFirmwareVersion() const
-// {
-//   return firmware_ver_;
-// }
-
-bool
-DynamixelDevice::processPacket()
+bool DynamixelDevice::processPacket()
 {
   bool ret = true;
 
@@ -246,6 +151,7 @@ uint8_t DynamixelDevice::getNumCanBeRegistered() const
 {
   return CONTROL_ITEM_MAX-registered_item_cnt_;
 }
+
 
 bool DynamixelDevice::isEnoughSpaceInControlTable(uint16_t start_addr, uint16_t length)
 {
@@ -355,64 +261,6 @@ uint8_t DynamixelDevice::addControlItem(uint16_t start_addr, double &data)
 }
 
 
-
-void DynamixelDevice::setWriteCallbackFunc(userCallbackFunc callback_func, void* callback_arg)
-{
-  user_write_callback_ = callback_func;
-  user_write_callbakc_arg_ = callback_arg;
-}
-
-void DynamixelDevice::setReadCallbackFunc(userCallbackFunc callback_func, void* callback_arg)
-{
-  user_read_callback_ = callback_func;
-  user_read_callbakc_arg_ = callback_arg;
-}
-
-// bool
-// DynamixelDevice::setPort(DXLPortHandler *p_port)
-// {
-//   if(p_port == nullptr){
-//     last_lib_err_ = DXL_LIB_ERROR_NULLPTR;
-//     return false;
-//   }
-
-//   p_port_ = p_port;
-
-//   return true;
-// }
-
-// bool
-// DynamixelDevice::setPort(DXLPortHandler &port)
-// {
-//   p_port_ = &port;
-
-//   return true;
-// }
-
-// DXLPortHandler*
-// DynamixelDevice::getPort() const
-// {
-//   return p_port_;
-// }
-
-DXLLibErrorCode_t DynamixelDevice::getLastLibErrCode() const
-{
-  return last_lib_err_;
-}
-
-
-void DynamixelDevice::setLastLibErrCode(DXLLibErrorCode_t err_code)
-{
-  last_lib_err_ = err_code;
-}
-
-
-uint8_t DynamixelDevice::getLastStatusPacketError() const
-{
-  return info_tx_packet_.err_idx;
-}
-
-
 bool DynamixelDevice::processInstPing()
 {
   bool ret = false;
@@ -427,9 +275,9 @@ bool DynamixelDevice::processInstPing()
     if(p_rx_info->protocol_ver == 2){
       tx_param_len = 3;
       if(tx_param_len+11 <= packet_buf_capacity_){
-        tx_param[0] = (uint8_t)(eeprom_registers.model_num >> 0);
-        tx_param[1] = (uint8_t)(eeprom_registers.model_num >> 8);
-        tx_param[2] = (uint8_t)eeprom_registers.firmware_ver;
+        tx_param[0] = (uint8_t)(model_num_ >> 0);
+        tx_param[1] = (uint8_t)(model_num_ >> 8);
+        tx_param[2] = (uint8_t)firmware_ver_;
       }else{
         err = DXL_LIB_ERROR_NOT_ENOUGH_BUFFER_SIZE;
       }
@@ -439,7 +287,7 @@ bool DynamixelDevice::processInstPing()
       err = DXL_LIB_ERROR_WRONG_PACKET;
     }
     if(err == DXL_LIB_OK){
-      ret = txStatusPacket(eeprom_registers.id, 0, tx_param, tx_param_len);
+      ret = txStatusPacket(id_, 0, tx_param, tx_param_len);
     }
   }else{
     err = DXL_LIB_ERROR_NOT_SUPPORT_BROADCAST;
@@ -451,8 +299,7 @@ bool DynamixelDevice::processInstPing()
 }
 
 
-bool
-DynamixelDevice::processInstRead()
+bool DynamixelDevice::processInstRead()
 {
   unsigned long start_micros = micros();    // for return delay
   InfoToParseDXLPacket_t *p_rx_info;
@@ -534,11 +381,11 @@ DynamixelDevice::processInstRead()
     }
   }
   // return delay time
-  if (micros() - start_micros > eeprom_registers.return_delay_time * 2) {
-    delayMicroseconds(micros() - start_micros - eeprom_registers.return_delay_time);
+  if (micros() - start_micros > return_delay_time_ * 2) {
+    delayMicroseconds(micros() - start_micros - return_delay_time_);
   }
   last_lib_err_ = DXL_LIB_OK;
-  return txStatusPacket(eeprom_registers.id, packet_err, p_tx_param, addr_length);
+  return txStatusPacket(id_, packet_err, p_tx_param, addr_length);
 }
 
 
@@ -549,8 +396,7 @@ uint8_t DynamixelDevice::processReadRegister(uint16_t addr)
 }
 
 
-bool
-DynamixelDevice::processInstWrite()
+bool DynamixelDevice::processInstWrite()
 {
   unsigned long start_micros = micros();    // for return delay
   InfoToParseDXLPacket_t *p_rx_info;
@@ -622,11 +468,11 @@ DynamixelDevice::processInstWrite()
     }
   }
   // return delay time
-  if (micros() - start_micros > eeprom_registers.return_delay_time * 2) {
-    delayMicroseconds(micros() - start_micros - eeprom_registers.return_delay_time);
+  if (micros() - start_micros > return_delay_time_ * 2) {
+    delayMicroseconds(micros() - start_micros - return_delay_time_);
   }
   last_lib_err_ = DXL_LIB_OK;
-  return txStatusPacket(eeprom_registers.id, packet_err, nullptr, 0);
+  return txStatusPacket(id_, packet_err, nullptr, 0);
 }
 
 
@@ -637,61 +483,58 @@ uint8_t DynamixelDevice::processWriteRegister(uint16_t addr, uint8_t* p_data)
     case ADDR_MODEL_NUMBER:         // model number if Read Only
     case ADDR_MODEL_INFORMATION:    // model info is Read Only
     case ADDR_FIRMWARE_VER:         // firmware is Read Only
-      if(eeprom_registers.protocol_ver == 2){
-        return DXL2_0_ERR_DATA_RANGE;
-      }
-      else {
-        return 1<<DXL1_0_ERR_RANGE_BIT;
-      }
+      return protocol_ver_ == 2 ? DXL2_0_ERR_DATA_RANGE : 1<<DXL1_0_ERR_RANGE_BIT;
       break;
 
     case ADDR_ID:
-      if(eeprom_registers.protocol_ver == 2 && p_data[0] >= 0xFD){
+      if(protocol_ver_ == 2 && p_data[0] >= 0xFD){
         return DXL2_0_ERR_DATA_RANGE;
       }
-      if(eeprom_registers.protocol_ver == 1 && p_data[0] >= 0xFE){
+      if(protocol_ver_ == 1 && p_data[0] >= 0xFE){
         return 1<<DXL1_0_ERR_RANGE_BIT;
       }
-      eeprom_registers.id = p_data[0];
-      EEPROM.put(ADDR_ID, eeprom_registers.id);
+      id_ = p_data[0];
+      EEPROM.put(ADDR_ID, id_);
       break;
 
     case ADDR_BAUDRATE:
-      if(eeprom_registers.protocol_ver == 2 && p_data[0] > 7){
-        return DXL2_0_ERR_DATA_RANGE;
+      if (p_data[0] > 7) {
+        return protocol_ver_ == 2 ? DXL2_0_ERR_DATA_RANGE : 1<<DXL1_0_ERR_RANGE_BIT;
       }
-      if(eeprom_registers.protocol_ver == 1 && p_data[0] > 7){
-        return 1<<DXL1_0_ERR_RANGE_BIT;
-      }
-      eeprom_registers.baudrate = p_data[0];
-      EEPROM.put(ADDR_BAUDRATE, eeprom_registers.baudrate);
+      baudrate_ = p_data[0];
+      EEPROM.put(ADDR_BAUDRATE, baudrate_);
       startCommunication(); // restart communication with new baud rate
       break;
 
     case ADDR_RETURN_DELAY_TIME:
-      if(eeprom_registers.protocol_ver == 2 && p_data[0] > 254){
-        return DXL2_0_ERR_DATA_RANGE;
+      if (p_data[0] > 254) {
+        return protocol_ver_ == 2 ? DXL2_0_ERR_DATA_RANGE : 1<<DXL1_0_ERR_RANGE_BIT;
       }
-      if(eeprom_registers.protocol_ver == 1 && p_data[0] > 254){
-        return 1<<DXL1_0_ERR_RANGE_BIT;
-      }
-      eeprom_registers.return_delay_time = p_data[0];
-      EEPROM.put(ADDR_RETURN_DELAY_TIME, eeprom_registers.return_delay_time);
+      return_delay_time_ = p_data[0];
+      EEPROM.put(ADDR_RETURN_DELAY_TIME, return_delay_time_);
       break;
 
     case ADDR_PROTOCOL_VER:
       if(p_data[0] != 1 && p_data[0] != 2){
-        if(eeprom_registers.protocol_ver == 2){
-          return DXL2_0_ERR_DATA_RANGE;
-        }
-        else {
-          return 1<<DXL1_0_ERR_RANGE_BIT;
-        }
+        return protocol_ver_ == 2 ? DXL2_0_ERR_DATA_RANGE : 1<<DXL1_0_ERR_RANGE_BIT;
       }
-      eeprom_registers.protocol_ver = p_data[0];
-      EEPROM.put(ADDR_PROTOCOL_VER, eeprom_registers.protocol_ver);
+      protocol_ver_ = p_data[0];
+      EEPROM.put(ADDR_PROTOCOL_VER, protocol_ver_);
       break;
 
+    case ADDR_ENABLE:
+      if (p_data[0] != 0 && p_data[0] != 1) {
+        return protocol_ver_ == 2 ? DXL2_0_ERR_DATA_RANGE : 1<<DXL1_0_ERR_RANGE_BIT;
+      }
+      enable_ = p_data[0];
+      break;
+
+    case ADDR_LED:
+      if (p_data[0] != 0 && p_data[0] != 1) {
+        return protocol_ver_ == 2 ? DXL2_0_ERR_DATA_RANGE : 1<<DXL1_0_ERR_RANGE_BIT;
+      }
+      led_ = p_data[0];
+      break;
   }
   return 0;
 }
@@ -742,7 +585,7 @@ bool DynamixelDevice::txStatusPacket(uint8_t id, uint8_t err_code, uint8_t *p_pa
   }
 
   // Send Status Packet
-  begin_make_dxl_packet(&info_tx_packet_, id, eeprom_registers.protocol_ver,
+  begin_make_dxl_packet(&info_tx_packet_, id, protocol_ver_,
     DXL_INST_STATUS, err_code, p_packet_buf_, packet_buf_capacity_);
   add_param_to_dxl_packet(&info_tx_packet_, p_param, param_len);
   err = end_make_dxl_packet(&info_tx_packet_);
@@ -774,14 +617,14 @@ const InfoToParseDXLPacket_t* DynamixelDevice::rxInstPacket(uint8_t* p_param_buf
   }
 
   // Receive Instruction Packet
-  begin_parse_dxl_packet(&info_rx_packet_, eeprom_registers.protocol_ver, p_param_buf, param_buf_cap);
+  begin_parse_dxl_packet(&info_rx_packet_, protocol_ver_, p_param_buf, param_buf_cap);
   while(p_port_->available() > 0)
   {
     err = parse_dxl_packet(&info_rx_packet_, p_port_->read());
     if(err == DXL_LIB_OK){
-      if((eeprom_registers.protocol_ver == 2 && info_rx_packet_.inst_idx != DXL_INST_STATUS)
-      || eeprom_registers.protocol_ver == 1){
-        if(info_rx_packet_.id == eeprom_registers.id || info_rx_packet_.id == DXL_BROADCAST_ID){
+      if((protocol_ver_ == 2 && info_rx_packet_.inst_idx != DXL_INST_STATUS)
+      || protocol_ver_ == 1){
+        if(info_rx_packet_.id == id_ || info_rx_packet_.id == DXL_BROADCAST_ID){
           p_ret = &info_rx_packet_;
         }
         break;
