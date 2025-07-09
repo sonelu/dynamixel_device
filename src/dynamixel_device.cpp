@@ -153,22 +153,22 @@ uint8_t DynamixelDevice::getNumCanBeRegistered() const
 }
 
 
-bool DynamixelDevice::isEnoughSpaceInControlTable(uint16_t start_addr, uint16_t length)
-{
-  uint16_t available_start_addr = control_table_[registered_item_cnt_].start_addr + control_table_[registered_item_cnt_].length;
+// bool DynamixelDevice::isEnoughSpaceInControlTable(uint16_t start_addr, uint16_t length)
+// {
+//   uint16_t available_start_addr = control_table_[registered_item_cnt_].start_addr + control_table_[registered_item_cnt_].length;
 
-  if(start_addr > CONTROL_ITEM_ADDR_LIMIT){
-    last_lib_err_ = DXL_LIB_ERROR_INVAILD_ADDR;
-    return false;
-  }
+//   if(start_addr > CONTROL_ITEM_ADDR_LIMIT){
+//     last_lib_err_ = DXL_LIB_ERROR_INVAILD_ADDR;
+//     return false;
+//   }
 
-  if(length == 0 || length > CONTROL_ITEM_ADDR_LIMIT - available_start_addr){
-    last_lib_err_ = DXL_LIB_ERROR_ADDR_LENGTH;
-    return false;
-  }
+//   if(length == 0 || length > CONTROL_ITEM_ADDR_LIMIT - available_start_addr){
+//     last_lib_err_ = DXL_LIB_ERROR_ADDR_LENGTH;
+//     return false;
+//   }
 
-  return true;
-}
+//   return true;
+// }
 
 
 uint8_t DynamixelDevice::addControlItem(uint16_t start_addr, uint8_t* p_data, uint16_t length)
@@ -183,9 +183,9 @@ uint8_t DynamixelDevice::addControlItem(uint16_t start_addr, uint8_t* p_data, ui
     return last_lib_err_;
   }
 
-  if(isEnoughSpaceInControlTable(start_addr, length) == false){
-    return last_lib_err_;
-  }
+  // if(isEnoughSpaceInControlTable(start_addr, length) == false){
+  //   return last_lib_err_;
+  // }
 
   for(uint16_t i=0; i < registered_item_cnt_; i++){
     if(isAddrInOtherItem(start_addr, length, control_table_[i].start_addr, control_table_[i].length)){

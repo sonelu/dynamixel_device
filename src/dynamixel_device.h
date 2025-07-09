@@ -72,7 +72,7 @@ class DynamixelDevice
     void setReadCallbackFunc(userCallbackFunc callback_func, void* callback_arg = nullptr);
 
     uint8_t getNumCanBeRegistered() const;
-    bool isEnoughSpaceInControlTable(uint16_t start_addr, uint16_t length);
+    // bool isEnoughSpaceInControlTable(uint16_t start_addr, uint16_t length);
 
     uint8_t addControlItem(uint16_t start_addr, uint8_t* p_data, uint16_t length);
     uint8_t addControlItem(uint16_t start_addr, bool &data);
